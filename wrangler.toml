@@ -1,4 +1,4 @@
-name = "wiki-note"
+name = "llm-wiki-note"
 main = "src/index.js"
 compatibility_date = "2026-04-24"
 assets = { directory = "./public" }
