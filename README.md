@@ -15,6 +15,13 @@ Wiki Note is a Cloudflare Worker service that:
 - **Experience:** live streaming generation over SSE
 - **Persistence:** saved notes + shareable read endpoint
 
+## Screenshots and Gif:
+<img width="1911" height="733" alt="Screenshot 2026-04-24 131323" src="https://github.com/user-attachments/assets/d74d135b-969e-4c2d-9d50-7612f099b798" />
+<img width="1477" height="939" alt="Screenshot 2026-04-24 131143" src="https://github.com/user-attachments/assets/d2688e2b-0f3a-4a57-a85e-c4efe6d3e9e2" />
+<img width="1459" height="939" alt="Screenshot 2026-04-24 131157" src="https://github.com/user-attachments/assets/49868dfc-de24-4c88-971d-c53702f7edca" />
+<img width="800" height="400" alt="2026-04-2412-20-37-ezgif com-video-to-gif-converter" src="https://github.com/user-attachments/assets/7d979dff-694f-4888-bc71-9980ed1ecd15" />
+
+
 ## 5-Minute Demo Script
 
 1. Start the worker locally.
