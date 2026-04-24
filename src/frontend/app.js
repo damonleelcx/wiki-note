@@ -58,6 +58,13 @@ const updateStages = (logs) => {
         )}</strong><span>${esc(m.detail || "")}</span></div>`,
     )
     .join("");
+  box.scrollTop = box.scrollHeight;
+  const outer = box.closest(".toc");
+  if (outer) outer.scrollTop = outer.scrollHeight;
+};
+
+const autoScrollMainContent = () => {
+  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
 };
 
 const persistDraft = (draft) => {
@@ -337,6 +344,7 @@ async function generateAndRender() {
         live.innerHTML = renderWikiLinks(rawHtml);
         qs("#toc").innerHTML = buildToc(live);
         persistDraft({ ...draftBase, html: rawHtml, updatedAt: Date.now() });
+        autoScrollMainContent();
       }
       if (msg.type === "done") {
         const htmlToSave = rawHtml || prefillHtml;
