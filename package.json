@@ -1,7 +1,7 @@
 {
   "name": "wiki-note-worker",
   "version": "1.0.0",
-  "description": "AI note generator on Cloudflare Workers",
+  "description": "Stylish AI note generator on Cloudflare Workers",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
