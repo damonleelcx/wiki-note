@@ -1,0 +1,14 @@
+name = "wiki-note"
+main = "src/index.js"
+compatibility_date = "2026-04-24"
+assets = { directory = "./public" }
+
+[vars]
+APP_NAME = "Wiki Note"
+GEMINI_MODEL = "gemini-2.5-flash"
+TRANSCRIPT_API_BASE_URL = "https://transcriptapi.com/api/v2/youtube/transcript"
+
+[[d1_databases]]
+binding = "wiki_note"
+database_name = "wiki_note"
+database_id = "64558ee9-4925-4158-904d-d1c67a6c63be"
