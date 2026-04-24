@@ -14,7 +14,14 @@ const api = async (path, options = {}) => {
 };
 
 const qs = (s, root = document) => root.querySelector(s);
-const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const esc = (s) =>
+  s.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
 const stageKey = (m) => `${m.stage}:${m.status || ""}:${m.detail || ""}`;
 
 const renderWikiLinks = (rawHtml) =>
@@ -27,13 +34,17 @@ const renderWikiLinks = (rawHtml) =>
 const stripRenderedWikiLinks = (html) =>
   String(html || "").replace(
     /<a[^>]*class="[^"]*wikilink[^"]*"[^>]*>\s*\[\[([^[\]]+)\]\]\s*<\/a>/gi,
-    (_, term) => `[[${String(term || "").trim()}]]`
+    (_, term) => `[[${String(term || "").trim()}]]`,
   );
 
 const extractTitleFromHtml = (html) => {
   const m = String(html || "").match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
   if (!m?.[1]) return "";
-  return m[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim().slice(0, 120);
+  return m[1]
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
 };
 
 const updateStages = (logs) => {
@@ -43,8 +54,8 @@ const updateStages = (logs) => {
     .map(
       (m) =>
         `<div class="stage-item"><span class="chip">${esc(m.stage)}</span><strong>${esc(
-          m.status || "update"
-        )}</strong><span>${esc(m.detail || "")}</span></div>`
+          m.status || "update",
+        )}</strong><span>${esc(m.detail || "")}</span></div>`,
     )
     .join("");
 };
@@ -141,7 +152,7 @@ async function auth(path) {
   const res = await fetch(path, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password }),
   });
   if (!res.ok) return alert(await res.text());
   const data = await res.json();
@@ -168,12 +179,14 @@ async function renderHome() {
     </section>
     <section class="panel">
       <h3>My Notes</h3>
-      <div>${notes.results
-        .map(
-          (n) =>
-            `<p><a href="#" data-note="${n.id}">${esc(n.title)}</a> <button class="ghost" data-open="${n.id}">Open</button> <button class="ghost" data-share="${n.id}">Share</button> <button class="ghost" data-delete-note="${n.id}">Delete</button></p>`
-        )
-        .join("") || "No notes yet."}</div>
+      <div>${
+        notes.results
+          .map(
+            (n) =>
+              `<p><a href="#" data-note="${n.id}">${esc(n.title)}</a> <button class="ghost" data-open="${n.id}">Open</button> <button class="ghost" data-share="${n.id}">Share</button> <button class="ghost" data-delete-note="${n.id}">Delete</button></p>`,
+          )
+          .join("") || "No notes yet."
+      }</div>
     </section>
     ${
       draft?.html
@@ -182,31 +195,50 @@ async function renderHome() {
     }
     <section class="panel">
       <h3>Trash Bin</h3>
-      <div>${(trash.results || [])
-        .map(
-          (n) =>
-            `<p>${esc(n.title)} <button class="ghost" data-restore-note="${n.id}">Restore</button> <button class="ghost" data-perma-delete-note="${n.id}">Permanently Delete</button></p>`
-        )
-        .join("") || "Trash is empty."}</div>
+      <div>${
+        (trash.results || [])
+          .map(
+            (n) =>
+              `<p>${esc(n.title)} <button class="ghost" data-restore-note="${n.id}">Restore</button> <button class="ghost" data-perma-delete-note="${n.id}">Permanently Delete</button></p>`,
+          )
+          .join("") || "Trash is empty."
+      }</div>
     </section>
   </div>`;
   qs("#generateBtn").onclick = generateAndRender;
-  app.querySelectorAll("[data-note]").forEach((a) => (a.onclick = (e) => {
-    e.preventDefault();
-    openNote(a.dataset.note, false);
-  }));
-  app.querySelectorAll("[data-open]").forEach((b) => (b.onclick = () => openNote(b.dataset.open, false)));
-  app.querySelectorAll("[data-share]").forEach((b) => (b.onclick = () => copyShareLink(b.dataset.share)));
-  app.querySelectorAll("[data-delete-note]").forEach((b) => (b.onclick = () => deleteNoteById(b.dataset.deleteNote)));
-  app.querySelectorAll("[data-restore-note]").forEach((b) => (b.onclick = () => restoreNoteById(b.dataset.restoreNote)));
-  app.querySelectorAll("[data-perma-delete-note]").forEach((b) =>
-    (b.onclick = () => permanentlyDeleteNoteById(b.dataset.permaDeleteNote))
+  app.querySelectorAll("[data-note]").forEach(
+    (a) =>
+      (a.onclick = (e) => {
+        e.preventDefault();
+        openNote(a.dataset.note, false);
+      }),
   );
-  if (qs("#resumeDraftBtn")) qs("#resumeDraftBtn").onclick = () => renderDraftEditor();
-  if (qs("#discardDraftBtn")) qs("#discardDraftBtn").onclick = () => {
-    clearDraft();
-    renderHome();
-  };
+  app
+    .querySelectorAll("[data-open]")
+    .forEach((b) => (b.onclick = () => openNote(b.dataset.open, false)));
+  app
+    .querySelectorAll("[data-share]")
+    .forEach((b) => (b.onclick = () => copyShareLink(b.dataset.share)));
+  app
+    .querySelectorAll("[data-delete-note]")
+    .forEach((b) => (b.onclick = () => deleteNoteById(b.dataset.deleteNote)));
+  app
+    .querySelectorAll("[data-restore-note]")
+    .forEach((b) => (b.onclick = () => restoreNoteById(b.dataset.restoreNote)));
+  app
+    .querySelectorAll("[data-perma-delete-note]")
+    .forEach(
+      (b) =>
+        (b.onclick = () =>
+          permanentlyDeleteNoteById(b.dataset.permaDeleteNote)),
+    );
+  if (qs("#resumeDraftBtn"))
+    qs("#resumeDraftBtn").onclick = () => renderDraftEditor();
+  if (qs("#discardDraftBtn"))
+    qs("#discardDraftBtn").onclick = () => {
+      clearDraft();
+      renderHome();
+    };
 }
 
 function buildToc(container) {
@@ -216,7 +248,8 @@ function buildToc(container) {
       const id = `sec_${i + 1}`;
       h.id = id;
       const level = h.tagName.toLowerCase();
-      const cls = level === "h1" ? "toc-l1" : level === "h2" ? "toc-l2" : "toc-l3";
+      const cls =
+        level === "h1" ? "toc-l1" : level === "h2" ? "toc-l2" : "toc-l3";
       return `<a class="${cls}" href="#${id}">${h.textContent}</a>`;
     })
     .join("");
@@ -232,7 +265,7 @@ async function generateAndRender() {
       <h3>Table of Contents</h3>
       <div id="toc"></div>
       <hr/>
-      <h3>Agent Harness</h3>
+      <h3>Workflow Logs</h3>
       <div id="stageLog"></div>
     </aside>
     <article class="panel doc">
@@ -248,12 +281,14 @@ async function generateAndRender() {
 
   const live = qs("#live");
   const stageLogs = [];
-  updateStages([{ stage: "planning", status: "start", detail: "Preparing request..." }]);
+  updateStages([
+    { stage: "planning", status: "start", detail: "Preparing request..." },
+  ]);
 
   const res = await api("/api/generate", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ videoUrl, title })
+    body: JSON.stringify({ videoUrl, title }),
   });
 
   const reader = res.body.getReader();
@@ -262,7 +297,12 @@ async function generateAndRender() {
   let rawHtml = "";
   let prefillHtml = "";
   let hasRealChunk = false;
-  const draftBase = { title: title || "AI 对话笔记", videoUrl, html: "", updatedAt: Date.now() };
+  const draftBase = {
+    title: title || "AI 对话笔记",
+    videoUrl,
+    html: "",
+    updatedAt: Date.now(),
+  };
   persistDraft(draftBase);
   while (true) {
     const { value, done } = await reader.read();
@@ -302,7 +342,8 @@ async function generateAndRender() {
         const htmlToSave = rawHtml || prefillHtml;
         qs("#genState").style.display = "none";
         qs("#saveWrap").style.display = "block";
-        qs("#saveBtn").onclick = () => saveNote({ title: title || "", videoUrl, html: htmlToSave });
+        qs("#saveBtn").onclick = () =>
+          saveNote({ title: title || "", videoUrl, html: htmlToSave });
       }
       if (msg.type === "error") {
         qs("#genState").style.display = "none";
@@ -316,7 +357,7 @@ async function saveNote(payload) {
   const res = await api("/api/notes", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
   const data = await res.json();
   clearDraft();
@@ -325,7 +366,7 @@ async function saveNote(payload) {
 
 async function openNote(id, shared) {
   const res = await fetch(shared ? `/api/share/${id}` : `/api/notes/${id}`, {
-    headers: currentToken ? { authorization: `Bearer ${currentToken}` } : {}
+    headers: currentToken ? { authorization: `Bearer ${currentToken}` } : {},
   });
   if (!res.ok) return alert(await res.text());
   const n = await res.json();
@@ -361,7 +402,9 @@ async function openNote(id, shared) {
   bindWikiLinkNavigation();
   if (!shared) {
     const autoTitle =
-      (n.title || "").trim() === "AI 对话笔记" ? extractTitleFromHtml(n.html) : "";
+      (n.title || "").trim() === "AI 对话笔记"
+        ? extractTitleFromHtml(n.html)
+        : "";
     if (autoTitle && qs("#titleInput")) qs("#titleInput").value = autoTitle;
 
     const doUpdate = async () => {
@@ -371,7 +414,7 @@ async function openNote(id, shared) {
       await api(`/api/notes/${id}`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ title, html })
+        body: JSON.stringify({ title, html }),
       });
       alert("Updated");
       renderHome();
@@ -390,9 +433,12 @@ async function renderGraph(focusTerm = "") {
   const notes = await (await api("/api/notes")).json();
   const draft = readDraft();
   app.innerHTML = `<div class="container panel"><h2>Knowledge Graph</h2><p id="graphMeta"></p><div id="graphActions"></div>${
-    draft?.html ? `<p><button class="ghost" id="backToDraftBtn">Back to Unsaved Draft</button></p>` : ""
+    draft?.html
+      ? `<p><button class="ghost" id="backToDraftBtn">Back to Unsaved Draft</button></p>`
+      : ""
   }<canvas class="graph" id="g"></canvas><div id="graphLinkedArticles"></div></div>`;
-  if (qs("#backToDraftBtn")) qs("#backToDraftBtn").onclick = () => renderDraftEditor();
+  if (qs("#backToDraftBtn"))
+    qs("#backToDraftBtn").onclick = () => renderDraftEditor();
   const canvas = qs("#g");
   const ctx = canvas.getContext("2d");
   const dpr = devicePixelRatio || 1;
@@ -403,7 +449,11 @@ async function renderGraph(focusTerm = "") {
   const linkFreq = new Map();
   const edgeFreq = new Map();
   for (const note of notes.results || []) {
-    const uniq = [...new Set((note.links || []).map((x) => String(x || "").trim()).filter(Boolean))];
+    const uniq = [
+      ...new Set(
+        (note.links || []).map((x) => String(x || "").trim()).filter(Boolean),
+      ),
+    ];
     uniq.forEach((t) => linkFreq.set(t, (linkFreq.get(t) || 0) + 1));
     for (let i = 0; i < uniq.length; i++) {
       for (let j = i + 1; j < uniq.length; j++) {
@@ -432,7 +482,9 @@ async function renderGraph(focusTerm = "") {
     degreeByTerm.set(bTerm, (degreeByTerm.get(bTerm) || 0) + 1);
     edges.push({ aTerm, bTerm, weight });
   }
-  const orderedTerms = [...terms].sort((a, b) => (degreeByTerm.get(b.term) || 0) - (degreeByTerm.get(a.term) || 0));
+  const orderedTerms = [...terms].sort(
+    (a, b) => (degreeByTerm.get(b.term) || 0) - (degreeByTerm.get(a.term) || 0),
+  );
 
   // Circular layered layout: high-degree nodes near center.
   const cx = 520;
@@ -442,7 +494,7 @@ async function renderGraph(focusTerm = "") {
     { cap: 10, r: 120 },
     { cap: 20, r: 220 },
     { cap: 32, r: 320 },
-    { cap: 60, r: 430 }
+    { cap: 60, r: 430 },
   ];
   let idx = 0;
   const nodes = [];
@@ -457,13 +509,25 @@ async function renderGraph(focusTerm = "") {
       const y = cy + ring.r * Math.sin(theta);
       const degree = degreeByTerm.get(t.term) || 0;
       const size = Math.min(8 + degree * 0.85, 26);
-      const n = { id: `term:${t.term}`, term: t.term, freq: t.freq, degree, x, y, size };
+      const n = {
+        id: `term:${t.term}`,
+        term: t.term,
+        freq: t.freq,
+        degree,
+        x,
+        y,
+        size,
+      };
       nodes.push(n);
       nodeByTerm.set(t.term, n);
     }
   }
   const finalEdges = edges
-    .map((e) => ({ a: nodeByTerm.get(e.aTerm), b: nodeByTerm.get(e.bTerm), weight: e.weight }))
+    .map((e) => ({
+      a: nodeByTerm.get(e.aTerm),
+      b: nodeByTerm.get(e.bTerm),
+      weight: e.weight,
+    }))
     .filter((e) => e.a && e.b);
   const focusNode = graphFocusTerm ? nodeByTerm.get(graphFocusTerm) : null;
   const focusNeighbors = new Set();
@@ -475,13 +539,16 @@ async function renderGraph(focusTerm = "") {
   }
   qs("#graphMeta").textContent = focusNode
     ? `Focused: [[${focusNode.term}]] • ${focusNeighbors.size} related terms • ${
-        finalEdges.filter((e) => e.a.term === focusNode.term || e.b.term === focusNode.term).length
+        finalEdges.filter(
+          (e) => e.a.term === focusNode.term || e.b.term === focusNode.term,
+        ).length
       } highlighted links.`
     : `${nodes.length} wiki terms, ${finalEdges.length} co-occurrence links from ${notes.results?.length || 0} notes.`;
   if (focusNode) {
-    qs("#graphActions").innerHTML = `<button class="ghost" id="deleteTermBtn">Delete Focus Term [[${esc(
-      focusNode.term
-    )}]]</button>`;
+    qs("#graphActions").innerHTML =
+      `<button class="ghost" id="deleteTermBtn">Delete Focus Term [[${esc(
+        focusNode.term,
+      )}]]</button>`;
     qs("#deleteTermBtn").onclick = () => deleteGraphTerm(focusNode.term);
   } else {
     qs("#graphActions").innerHTML = "";
@@ -496,7 +563,7 @@ async function renderGraph(focusTerm = "") {
     const subGroups = relatedTerms
       .map((term) => ({
         term,
-        notes: noteList.filter((n) => hasTerm(n, term))
+        notes: noteList.filter((n) => hasTerm(n, term)),
       }))
       .filter((g) => g.notes.length > 0)
       .sort((a, b) => b.notes.length - a.notes.length);
@@ -511,13 +578,16 @@ async function renderGraph(focusTerm = "") {
       <div class="panel" style="margin-top:12px">
         <h3>Articles from Selected Node</h3>
         <p><strong>Main Article (<button type="button" class="chip graph-term-chip" data-graph-term="${esc(
-          focusNode.term
+          focusNode.term,
         )}">[[${esc(focusNode.term)}]]</button>)</strong></p>
         <div>
           ${
             mainArticles.length
               ? mainArticles
-                  .map((n) => `<p><a href="#" data-graph-note="${n.id}">${esc(n.title)}</a></p>`)
+                  .map(
+                    (n) =>
+                      `<p><a href="#" data-graph-note="${n.id}">${esc(n.title)}</a></p>`,
+                  )
                   .join("")
               : "<p>No direct article found.</p>"
           }
@@ -533,9 +603,12 @@ async function renderGraph(focusTerm = "") {
                     <div style="margin-bottom:10px">
                       <div><button type="button" class="chip graph-term-chip" data-graph-term="${esc(g.term)}">[[${esc(g.term)}]]</button></div>
                       ${g.notes
-                        .map((n) => `<p><a href="#" data-graph-note="${n.id}">${esc(n.title)}</a></p>`)
+                        .map(
+                          (n) =>
+                            `<p><a href="#" data-graph-note="${n.id}">${esc(n.title)}</a></p>`,
+                        )
                         .join("")}
-                    </div>`
+                    </div>`,
                   )
                   .join("")
               : "<p>No related articles from connected terms.</p>"
@@ -577,7 +650,8 @@ async function renderGraph(focusTerm = "") {
 
     ctx.strokeStyle = "#93c5fd";
     finalEdges.forEach(({ a, b, weight }) => {
-      const isFocusEdge = focusNode && (a.term === focusNode.term || b.term === focusNode.term);
+      const isFocusEdge =
+        focusNode && (a.term === focusNode.term || b.term === focusNode.term);
       if (focusNode && !isFocusEdge) {
         ctx.strokeStyle = "rgba(148,163,184,0.25)";
       } else {
@@ -661,7 +735,10 @@ async function renderGraph(focusTerm = "") {
   canvas.onwheel = (e) => {
     e.preventDefault();
     const prev = scale;
-    const next = Math.min(2.6, Math.max(0.45, prev * (e.deltaY > 0 ? 0.92 : 1.08)));
+    const next = Math.min(
+      2.6,
+      Math.max(0.45, prev * (e.deltaY > 0 ? 0.92 : 1.08)),
+    );
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
@@ -710,7 +787,12 @@ function renderDraftEditor() {
     </article>
   </div></div>`;
   qs("#toc").innerHTML = buildToc(qs("#live"));
-  qs("#saveDraftBtn").onclick = () => saveNote({ title: draft.title || "", videoUrl: draft.videoUrl, html: draft.html });
+  qs("#saveDraftBtn").onclick = () =>
+    saveNote({
+      title: draft.title || "",
+      videoUrl: draft.videoUrl,
+      html: draft.html,
+    });
   qs("#discardDraftBtn2").onclick = () => {
     clearDraft();
     renderHome();
@@ -719,7 +801,8 @@ function renderDraftEditor() {
 }
 
 async function deleteNoteById(noteId) {
-  if (!confirm("Move this note to Trash Bin? You can restore it later.")) return;
+  if (!confirm("Move this note to Trash Bin? You can restore it later."))
+    return;
   await api(`/api/notes/${noteId}`, { method: "DELETE" });
   renderHome();
 }
@@ -730,14 +813,24 @@ async function restoreNoteById(noteId) {
 }
 
 async function permanentlyDeleteNoteById(noteId) {
-  if (!confirm("Permanently delete this note from Trash? This cannot be undone.")) return;
+  if (
+    !confirm("Permanently delete this note from Trash? This cannot be undone.")
+  )
+    return;
   await api(`/api/notes/${noteId}/permanent`, { method: "DELETE" });
   renderHome();
 }
 
 async function deleteGraphTerm(term) {
-  if (!confirm(`Delete [[${term}]] from all your notes? This updates note content and graph links.`)) return;
-  const res = await api(`/api/graph/term?name=${encodeURIComponent(term)}`, { method: "DELETE" });
+  if (
+    !confirm(
+      `Delete [[${term}]] from all your notes? This updates note content and graph links.`,
+    )
+  )
+    return;
+  const res = await api(`/api/graph/term?name=${encodeURIComponent(term)}`, {
+    method: "DELETE",
+  });
   const data = await res.json();
   alert(`Deleted term [[${term}]] from ${data.affectedNotes} notes.`);
   renderGraph();
