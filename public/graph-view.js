@@ -179,6 +179,8 @@ function bindGraphCanvas({ canvas, c2d, nodes, finalEdges, focusNode, focusNeigh
   let lastX = 0;
   let lastY = 0;
   let dragMoved = false;
+  let activeKind = null;
+  let activeId = null;
 
   const redraw = () => {
     c2d.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
@@ -213,42 +215,152 @@ function bindGraphCanvas({ canvas, c2d, nodes, finalEdges, focusNode, focusNeigh
     c2d.restore();
   };
 
-  canvas.style.cursor = "grab";
-  canvas.onmousedown = (e) => {
-    dragging = true;
-    dragMoved = false;
-    lastX = e.clientX;
-    lastY = e.clientY;
-    canvas.style.cursor = "grabbing";
-  };
-  window.onmouseup = () => {
-    dragging = false;
-    canvas.style.cursor = "grab";
-  };
-  canvas.onmousemove = (e) => {
-    if (!dragging) return;
-    const dx = e.clientX - lastX;
-    const dy = e.clientY - lastY;
-    if (Math.abs(dx) + Math.abs(dy) > 2) dragMoved = true;
-    lastX = e.clientX;
-    lastY = e.clientY;
-    offsetX += dx;
-    offsetY += dy;
-    redraw();
-  };
-  canvas.onclick = async (e) => {
-    if (dragMoved) return;
+  const pointInCanvas = (x, y) => {
     const rect = canvas.getBoundingClientRect();
-    const gx = (e.clientX - rect.left - offsetX) / scale;
-    const gy = (e.clientY - rect.top - offsetY) / scale;
-    const hit = nodes.find((n) => {
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+  };
+
+  canvas.style.cursor = "grab";
+  canvas.style.touchAction = "none";
+  canvas.style.userSelect = "none";
+
+  const findHitNode = (clientX, clientY) => {
+    const rect = canvas.getBoundingClientRect();
+    const gx = (clientX - rect.left - offsetX) / scale;
+    const gy = (clientY - rect.top - offsetY) / scale;
+    return nodes.find((n) => {
       const r = n.size + 3;
       const dx = gx - n.x;
       const dy = gy - n.y;
       return dx * dx + dy * dy <= r * r;
     });
+  };
+
+  const beginDrag = (kind, id, x, y) => {
+    if (activeKind && (activeKind !== kind || activeId !== id)) return;
+    activeKind = kind;
+    activeId = id;
+    dragging = true;
+    dragMoved = false;
+    lastX = x;
+    lastY = y;
+    canvas.style.cursor = "grabbing";
+  };
+
+  const moveDrag = (kind, id, x, y) => {
+    if (!dragging || activeKind !== kind || activeId !== id) return;
+    const dx = x - lastX;
+    const dy = y - lastY;
+    if (Math.abs(dx) + Math.abs(dy) > 4) dragMoved = true;
+    lastX = x;
+    lastY = y;
+    offsetX += dx;
+    offsetY += dy;
+    redraw();
+  };
+
+  const endDrag = async (kind, id, x, y) => {
+    if (!dragging || activeKind !== kind || activeId !== id) return;
+    const moved = dragMoved;
+    dragging = false;
+    activeKind = null;
+    activeId = null;
+    canvas.style.cursor = "grab";
+    if (moved) return;
+    const hit = findHitNode(x, y);
     if (hit?.term) await ctx.renderGraph(hit.term);
   };
+
+  const cancelDrag = (kind) => {
+    if (activeKind !== kind) return;
+    dragging = false;
+    activeKind = null;
+    activeId = null;
+    canvas.style.cursor = "grab";
+  };
+
+  // Capture touch globally, then only engage when touch starts inside canvas bounds.
+  let touchCaptured = false;
+
+  const findTouchById = (list, id) => {
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].identifier === id) return list[i];
+    }
+    return null;
+  };
+
+  document.addEventListener(
+    "touchstart",
+    (e) => {
+      if (!e.changedTouches.length || activeKind) return;
+      const t = e.changedTouches[0];
+      if (!pointInCanvas(t.clientX, t.clientY)) return;
+      touchCaptured = true;
+      beginDrag("touch", t.identifier, t.clientX, t.clientY);
+      e.preventDefault();
+    },
+    { passive: false, capture: true },
+  );
+
+  document.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!touchCaptured || activeKind !== "touch") return;
+      const t = findTouchById(e.changedTouches, activeId) || findTouchById(e.touches, activeId);
+      if (!t) {
+        e.preventDefault();
+        return;
+      }
+      moveDrag("touch", t.identifier, t.clientX, t.clientY);
+      e.preventDefault();
+    },
+    { passive: false, capture: true },
+  );
+
+  document.addEventListener(
+    "touchend",
+    async (e) => {
+      if (!touchCaptured || activeKind !== "touch") return;
+      const t = findTouchById(e.changedTouches, activeId);
+      if (t) {
+        await endDrag("touch", t.identifier, t.clientX, t.clientY);
+      }
+      touchCaptured = false;
+      e.preventDefault();
+    },
+    { passive: false, capture: true },
+  );
+
+  document.addEventListener(
+    "touchcancel",
+    () => {
+      if (touchCaptured) {
+        cancelDrag("touch");
+        touchCaptured = false;
+      }
+    },
+    { capture: true },
+  );
+
+  canvas.onpointerdown = (e) => {
+    beginDrag("pointer", e.pointerId, e.clientX, e.clientY);
+    canvas.setPointerCapture?.(e.pointerId);
+  };
+  canvas.onpointermove = (e) => {
+    moveDrag("pointer", e.pointerId, e.clientX, e.clientY);
+    if (activeKind === "pointer") e.preventDefault();
+  };
+  canvas.onpointerup = async (e) => {
+    await endDrag("pointer", e.pointerId, e.clientX, e.clientY);
+  };
+  canvas.onpointercancel = () => cancelDrag("pointer");
+
+  canvas.onmousedown = (e) => beginDrag("mouse", 0, e.clientX, e.clientY);
+  window.onmousemove = (e) => moveDrag("mouse", 0, e.clientX, e.clientY);
+  window.onmouseup = async (e) => {
+    await endDrag("mouse", 0, e.clientX, e.clientY);
+  };
+
   canvas.onwheel = (e) => {
     e.preventDefault();
     const prev = scale;
@@ -261,15 +373,16 @@ function bindGraphCanvas({ canvas, c2d, nodes, finalEdges, focusNode, focusNeigh
     scale = next;
     redraw();
   };
+
   canvas.ondblclick = () => {
     scale = 1;
     offsetX = 0;
     offsetY = 0;
     redraw();
   };
+
   redraw();
 }
-
 async function deleteGraphTerm(term, ctx) {
   if (!confirm(`Delete [[${term}]] from all your notes? This updates note content and graph links.`)) return;
   const res = await ctx.api(`/api/graph/term?name=${encodeURIComponent(term)}`, {
